@@ -22,7 +22,6 @@ name = "obj"
 
 [features]
 default = []
-# default = ["serde"]
 # This feature is kept for backwards compatibility. Use feature "glium" instead.
 glium-support = ["glium"]
 

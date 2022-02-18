@@ -2,8 +2,7 @@ use crate::error::{LoadError, LoadErrorKind, ObjError, ObjResult};
 use core2::io::{BufRead, Result};
 
 use alloc::vec::Vec;
-use alloc::vec::IntoIter;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use core::marker::PhantomData;
 use core2::io::ErrorKind;
 
@@ -28,11 +27,6 @@ fn test_strip_commect() {
     t!("한글 # 한글" => "한글 ");
     t!("" => "");
 }
-
-//type StrippedLines<'a> = Split<'a, String, char>;
-//type StrippedLines = Map<String, fn(&str) -> String>;
-// type StrippedLines = Map<, fn(&str) -> String>;
-// type StrippedLines<'a, T> = Map<core::str::iter::Split<'a, char>, fn(&str) -> String>;
 
 // TODO: use slices
 pub struct Lexer <T> {
