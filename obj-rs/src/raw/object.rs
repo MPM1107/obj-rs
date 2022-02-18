@@ -1,10 +1,12 @@
 //! Parses `.obj` format which stores 3D mesh data
 
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::hash::Hash;
-use std::io::BufRead;
-use std::mem;
+use alloc::collections::btree_map::Entry;
+use alloc::collections::BTreeMap as HashMap;
+use alloc::vec::Vec;
+use alloc::string::{String, ToString};
+use core::hash::Hash;
+use core2::io::BufRead;
+use core::mem;
 
 use crate::error::ObjResult;
 use crate::raw::lexer::lex;
@@ -49,7 +51,7 @@ macro_rules! parse_args {
 // that 1 is the first vertex.
 fn try_index<T>(collection: &[T], input: &str) -> ObjResult<usize> {
     use crate::error::{LoadError, LoadErrorKind, ObjError};
-    use std::convert::TryInto;
+    use core::convert::TryInto;
 
     let len: isize = collection.len().try_into().map_err(|_| {
         ObjError::Load(LoadError::new(
@@ -340,7 +342,7 @@ struct GroupBuilder<'a, K> {
 
 impl<'a, K> GroupBuilder<'a, K>
 where
-    K: Clone + Eq + Hash,
+    K: Clone + Eq + Hash + Ord,
 {
     fn new(counter: &'a Counter) -> Self {
         GroupBuilder {
@@ -351,7 +353,7 @@ where
     }
 
     fn with_default(counter: &'a Counter, default: K) -> Self {
-        let mut result = HashMap::with_capacity(1);
+        let mut result = HashMap::new();
         result.insert(default.clone(), Group::new((0, 0, 0)));
 
         GroupBuilder {
@@ -417,7 +419,7 @@ where
 }
 
 /// Constant which is used to represent undefined bound of range.
-const UNDEFINED: usize = ::std::usize::MAX;
+const UNDEFINED: usize = usize::MAX;
 
 impl Group {
     fn new(count: (usize, usize, usize)) -> Self {

@@ -1,8 +1,9 @@
 //! Parses `.mtl` format which stores material data
 
-use std::collections::HashMap;
-use std::io::BufRead;
-use std::mem::take;
+use alloc::collections::BTreeMap as HashMap;
+use core2::io::BufRead;
+use core::mem::take;
+use alloc::string::{String, ToString};
 
 use crate::error::ObjResult;
 use crate::raw::lexer::lex;

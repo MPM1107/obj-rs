@@ -1,12 +1,18 @@
 use crate::error::{LoadError, LoadErrorKind, ObjError, ObjResult};
-use std::io::{BufRead, Lines, Result};
-use std::iter::Map;
+use core2::io::{BufRead, Result};
 
-fn strip_comment(mut line: String) -> String {
+use alloc::vec::Vec;
+use alloc::vec::IntoIter;
+use alloc::string::{String, ToString};
+use core::marker::PhantomData;
+use core2::io::ErrorKind;
+
+fn strip_comment(line: &str) -> Result<String> {
+    let mut s = String::from(line);
     if let Some(idx) = line.find('#') {
-        line.truncate(idx)
+        s.truncate(idx)
     }
-    line
+    Ok(s)
 }
 
 #[test]
@@ -23,16 +29,28 @@ fn test_strip_commect() {
     t!("" => "");
 }
 
-type StrippedLines<T> = Map<Lines<T>, fn(Result<String>) -> Result<String>>;
+//type StrippedLines<'a> = Split<'a, String, char>;
+//type StrippedLines = Map<String, fn(&str) -> String>;
+// type StrippedLines = Map<, fn(&str) -> String>;
+// type StrippedLines<'a, T> = Map<core::str::iter::Split<'a, char>, fn(&str) -> String>;
 
-pub struct Lexer<T> {
-    stripped_lines: StrippedLines<T>,
+// TODO: use slices
+pub struct Lexer <T> {
+    _phantom: PhantomData<T>,
+    stripped_lines: Vec<Result<String>>, // StrippedLines<'a,  T>,
+    cur_line: usize,
 }
 
-impl<T: BufRead> Lexer<T> {
+impl<T: BufRead> Lexer <T> {
     pub fn new(input: T) -> Self {
+        let all = input.bytes().flatten().collect();
+        let s = String::from_utf8(all).unwrap();
+        let all_lines = s.split('\n').map(strip_comment).collect::<Vec<Result<String>>>();
+
         Lexer {
-            stripped_lines: input.lines().map(|result| result.map(strip_comment)),
+            _phantom: PhantomData,
+            stripped_lines: all_lines,
+            cur_line: 0usize,
         }
     }
 }
@@ -41,17 +59,20 @@ impl<T: BufRead> Iterator for Lexer<T> {
     type Item = ObjResult<String>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Check if maybe_line has finished
         let maybe_line;
-        match self.stripped_lines.next() {
+        let lines = &self.stripped_lines;
+
+        match lines.get(self.cur_line) {
             None => return None,
-            Some(val) => maybe_line = val,
+            Some(val) => { maybe_line = val; self.cur_line += 1 },
         }
 
         // Check if maybe_line has errored
         let line;
         match maybe_line {
-            Err(e) => return Some(Err(ObjError::Io(e))),
+            Err(_e) => return Some(Err(
+                ObjError::Io(core2::io::Error::new(ErrorKind::Uncategorized, ""))
+            )),
             Ok(val) => line = val,
         }
 
@@ -66,15 +87,18 @@ impl<T: BufRead> Iterator for Lexer<T> {
                 // Search for the next lines
                 loop {
                     let line;
-                    match self.stripped_lines.next() {
+                    match lines.get(self.cur_line) {
                         None => {
                             return Some(Err(ObjError::Load(LoadError::new(
                                 LoadErrorKind::BackslashAtEOF,
                                 "Expected a line, but met an EOF",
                             ))))
                         }
-                        Some(Err(e)) => return Some(Err(ObjError::Io(e))),
-                        Some(Ok(val)) => line = val,
+                        Some(Err(_e)) =>
+                            return Some(Err(
+                                ObjError::Io(core2::io::Error::new(ErrorKind::Uncategorized, ""))
+                            )),
+                        Some(Ok(val)) => { line = val; self.cur_line += 1; },
                     }
                     match line.strip_suffix('\\') {
                         Some(stripped) => {

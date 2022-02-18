@@ -24,6 +24,7 @@ dome.indices;
 */
 
 #![deny(missing_docs)]
+#![no_std]
 
 #[macro_use]
 mod error;
@@ -33,8 +34,10 @@ pub use crate::error::{LoadError, LoadErrorKind, ObjError, ObjResult};
 
 use crate::raw::object::Polygon;
 use num_traits::FromPrimitive;
-use std::collections::hash_map::{Entry, HashMap};
-use std::io::BufRead;
+use alloc::collections::btree_map::{Entry, BTreeMap as HashMap};
+use alloc::vec::Vec;
+use alloc::string::String;
+use core2::io::BufRead;
 
 #[cfg(feature = "glium")]
 use glium::implement_vertex;
@@ -44,6 +47,9 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "vulkano")]
 #[cfg_attr(feature = "vulkano", macro_use)]
 extern crate vulkano;
+
+#[macro_use]
+extern crate alloc;
 
 /// Load a wavefront OBJ file into Rust & OpenGL friendly format.
 pub fn load_obj<V: FromRawVertex<I>, T: BufRead, I>(input: T) -> ObjResult<Obj<V, I>> {
